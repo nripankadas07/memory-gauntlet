@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.1.1 - 2026-08-16
+
+- Require every hidden and visible assertion to bind to relevant scenario state,
+  preventing invented hidden IDs from diluting observed adapter failures.
+- Reject duplicate scenario IDs across validation and benchmark runs.
+- Stage complete report bundles and publish them through symlink-safe,
+  descriptor-relative atomic renames with backup/rollback on failure; reject
+  every unverified path symlink and non-regular artifact target, and fail closed
+  when descriptor-relative operations are unavailable.
+- Publish SPDX `License-Expression` and bundled license metadata in wheels.
+- Enforce category-specific assertion schemas, bind correction current/stale
+  assertions to one record, and require every hidden target to be reachable by
+  the declared query and limit in the deliberately ungoverned behavior.
+- Bound TTL and logical-time arithmetic to SQLite's signed 64-bit integer range
+  and translate adapter overflow into controlled validation errors.
+- Serialize cooperating bundle writers with a verified-directory advisory lock,
+  reconcile renames that complete before reporting an error, and guard ownership
+  across every descriptor/stream error path.
+- Ship tests, scenarios, demo goldens, and documentation in the sdist; extract
+  it, run its full suite, and build the release wheel from it in CI.
+
 ## 0.1.0 - 2026-08-16
 
 - Initial adapter contract, governed SQLite baseline, and intentionally leaky

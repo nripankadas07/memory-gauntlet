@@ -9,7 +9,7 @@ from typing import List, Optional, Sequence
 
 from . import __version__
 from .reporting import write_bundle
-from .runner import load_scenario, run_paths
+from .runner import load_scenario, require_unique_scenario_ids, run_paths
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -46,8 +46,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     args = _parser().parse_args(argv)
     try:
         if args.command == "validate":
-            for path in args.scenarios:
-                load_scenario(path)
+            scenarios = [load_scenario(path) for path in args.scenarios]
+            require_unique_scenario_ids(scenarios)
             print("valid: %d scenario file(s)" % len(args.scenarios))
             return 0
         if args.command == "run":

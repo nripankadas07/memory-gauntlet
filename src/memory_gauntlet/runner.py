@@ -8,12 +8,20 @@ from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 from . import SCENARIO_VERSION, SCHEMA_VERSION, __version__
-from .adapters import MemoryAdapter, make_adapter
+from .adapters import MAX_LOGICAL_TIME, MemoryAdapter, make_adapter
 
 
 CATEGORIES = {"recall", "correction", "deletion", "ttl", "role", "privacy"}
 OPS = {"write", "correct", "delete", "advance", "query"}
 EXPECTATION_KEYS = ("visible_ids", "hidden_ids", "contains", "excludes")
+CATEGORY_EXPECTATION_KEYS = {
+    "recall": {"visible_ids", "contains"},
+    "correction": {"visible_ids", "contains", "excludes"},
+    "deletion": {"hidden_ids", "excludes"},
+    "ttl": {"hidden_ids", "excludes"},
+    "role": {"hidden_ids", "excludes"},
+    "privacy": {"hidden_ids", "excludes"},
+}
 
 
 def _non_empty_string(value: Any) -> bool:
@@ -38,21 +46,88 @@ def _query_reaches(query: str, text: str) -> bool:
     return bool(_tokens(query) & _tokens(text))
 
 
-def _contains_fragment(values: Sequence[str], text: str) -> bool:
-    lowered = text.lower()
-    return any(value.lower() in lowered for value in values)
-
-
-def _visible_binding(expected: Mapping[str, Any], memory_id: str, text: str) -> bool:
-    return memory_id in expected.get("visible_ids", []) or _contains_fragment(
-        expected.get("contains", []), text
+def _all_visible_assertions_bind(
+    expected: Mapping[str, Any], candidates: Sequence[tuple]
+) -> bool:
+    return all(
+        any(memory_id == expected_id for memory_id, _ in candidates)
+        for expected_id in expected.get("visible_ids", [])
+    ) and all(
+        any(fragment.lower() in record["text"].lower() for _, record in candidates)
+        for fragment in expected.get("contains", [])
     )
 
 
-def _hidden_binding(expected: Mapping[str, Any], memory_id: str, text: str) -> bool:
-    return memory_id in expected.get("hidden_ids", []) or _contains_fragment(
-        expected.get("excludes", []), text
+def _all_hidden_assertions_bind(
+    expected: Mapping[str, Any], candidates: Sequence[tuple], reachable: Sequence[tuple]
+) -> bool:
+    return all(
+        any(memory_id == expected_id for memory_id, _ in candidates)
+        and any(memory_id == expected_id for memory_id, _, _ in reachable)
+        for expected_id in expected.get("hidden_ids", [])
+    ) and all(
+        any(
+            fragment.lower() in record["text"].lower()
+            and any(
+                reachable_id == memory_id
+                and fragment.lower() in reachable_text.lower()
+                for reachable_id, reachable_text, _ in reachable
+            )
+            for memory_id, record in candidates
+        )
+        for fragment in expected.get("excludes", [])
     )
+
+
+def _ungoverned_results(
+    records: Mapping[str, Mapping[str, Any]], query: str, limit: int
+) -> List[tuple]:
+    query_tokens = _tokens(query)
+    matches = []
+    for memory_id, record in records.items():
+        versions = list(record["stale_texts"]) + [record["text"]]
+        for version, text in enumerate(versions, 1):
+            score = len(query_tokens & _tokens(text))
+            if score > 0 or not query_tokens:
+                matches.append((memory_id, text, version, score))
+    ranked = sorted(matches, key=lambda item: (-item[3], item[0], item[2]))[:limit]
+    return [(memory_id, text, version) for memory_id, text, version, _ in ranked]
+
+
+def _correction_assertions_bind_same_record(
+    expected: Mapping[str, Any],
+    candidates: Sequence[tuple],
+    query: str,
+    reachable: Sequence[tuple],
+) -> bool:
+    for memory_id, record in candidates:
+        if any(
+            expected_id != memory_id
+            for expected_id in expected.get("visible_ids", [])
+        ):
+            continue
+        if any(
+            fragment.lower() not in record["text"].lower()
+            for fragment in expected.get("contains", [])
+        ):
+            continue
+        stale_bound = True
+        for fragment in expected.get("excludes", []):
+            matching_stale = [
+                stale_text
+                for stale_text in record["stale_texts"]
+                if fragment.lower() in stale_text.lower()
+                and _query_reaches(query, stale_text)
+            ]
+            if not matching_stale or not any(
+                reachable_id == memory_id and reachable_text in matching_stale
+                for reachable_id, reachable_text, _ in reachable
+            ):
+                stale_bound = False
+                break
+        if stale_bound:
+            return True
+    return False
 
 
 def _authorized(record: Mapping[str, Any], actor: str, roles: Mapping[str, str]) -> bool:
@@ -81,6 +156,9 @@ def _validate_scenario_semantics(
                 errors.append("%s writes duplicate memory_id %s" % (prefix, memory_id))
                 continue
             ttl = step.get("ttl")
+            if ttl is not None and ttl > MAX_LOGICAL_TIME - now:
+                errors.append("%s ttl exceeds the bounded logical-time range" % prefix)
+                continue
             records[memory_id] = {
                 "owner": step["actor"],
                 "text": step["text"],
@@ -100,10 +178,14 @@ def _validate_scenario_semantics(
             if record["owner"] != step["actor"]:
                 errors.append("%s correction actor must own memory_id %s" % (prefix, memory_id))
                 continue
+            ttl = step.get("ttl")
+            if ttl is not None and ttl > MAX_LOGICAL_TIME - now:
+                errors.append("%s ttl exceeds the bounded logical-time range" % prefix)
+                continue
             record["stale_texts"].append(record["text"])
             record["text"] = step["text"]
-            if "ttl" in step:
-                record["expires_at"] = now + step["ttl"]
+            if ttl is not None:
+                record["expires_at"] = now + ttl
             continue
         if op == "delete":
             memory_id = step["memory_id"]
@@ -120,7 +202,10 @@ def _validate_scenario_semantics(
             record["deleted"] = True
             continue
         if op == "advance":
-            now += step["seconds"]
+            if step["seconds"] > MAX_LOGICAL_TIME - now:
+                errors.append("%s exceeds the bounded logical-time range" % prefix)
+            else:
+                now += step["seconds"]
             continue
         if op != "query":
             continue
@@ -129,6 +214,9 @@ def _validate_scenario_semantics(
         query = step["query"]
         expected = step["expect"]
         category = step["category"]
+        reachable = _ungoverned_results(
+            records, query, step.get("limit", 5)
+        )
         if category == "recall":
             candidates = [
                 (memory_id, record)
@@ -137,11 +225,10 @@ def _validate_scenario_semantics(
                 and (record["expires_at"] is None or record["expires_at"] > now)
                 and _authorized(record, actor, roles)
                 and _query_reaches(query, record["text"])
-                and _visible_binding(expected, memory_id, record["text"])
             ]
-            if not candidates:
+            if not candidates or not _all_visible_assertions_bind(expected, candidates):
                 errors.append(
-                    "%s recall assertions must bind to a visible, query-relevant existing memory"
+                    "%s recall assertions must each bind to visible, query-relevant existing memory"
                     % prefix
                 )
             continue
@@ -154,19 +241,21 @@ def _validate_scenario_semantics(
                     or (record["expires_at"] is not None and record["expires_at"] <= now)
                     or not _authorized(record, actor, roles)
                     or not _query_reaches(query, record["text"])
-                    or not _visible_binding(expected, memory_id, record["text"])
                 ):
                     continue
-                stale_bound = any(
-                    _query_reaches(query, stale_text)
-                    and _contains_fragment(expected.get("excludes", []), stale_text)
-                    for stale_text in record["stale_texts"]
+                candidates.append((memory_id, record))
+            if (
+                not candidates
+                or not _correction_assertions_bind_same_record(
+                    expected, candidates, query, reachable
                 )
-                if stale_bound:
-                    candidates.append((memory_id, record))
-            if not candidates:
+            ):
                 errors.append(
-                    "%s correction assertions must bind current and excluded stale text to the same corrected, query-relevant memory"
+                    (
+                        "%s correction assertions must each bind current and excluded "
+                        "stale text to corrected, query-relevant memory; use excludes "
+                        "for stale text"
+                    )
                     % prefix
                 )
             continue
@@ -177,11 +266,12 @@ def _validate_scenario_semantics(
                 if record["deleted"]
                 and record["deleted_while_live"]
                 and _query_reaches(query, record["text"])
-                and _hidden_binding(expected, memory_id, record["text"])
             ]
-            if not candidates:
+            if not candidates or not _all_hidden_assertions_bind(
+                expected, candidates, reachable
+            ):
                 errors.append(
-                    "%s deletion assertions must bind to a query-relevant memory deleted while live"
+                    "%s deletion assertions must each bind to query-relevant memory deleted while live"
                     % prefix
                 )
             continue
@@ -193,11 +283,12 @@ def _validate_scenario_semantics(
                 and record["expires_at"] is not None
                 and record["expires_at"] <= now
                 and _query_reaches(query, record["text"])
-                and _hidden_binding(expected, memory_id, record["text"])
             ]
-            if not candidates:
+            if not candidates or not _all_hidden_assertions_bind(
+                expected, candidates, reachable
+            ):
                 errors.append(
-                    "%s ttl assertions must bind to a query-relevant memory whose TTL has expired"
+                    "%s ttl assertions must each bind to query-relevant memory whose TTL has expired"
                     % prefix
                 )
             continue
@@ -209,11 +300,15 @@ def _validate_scenario_semantics(
                 and (record["expires_at"] is None or record["expires_at"] > now)
                 and not _authorized(record, actor, roles)
                 and _query_reaches(query, record["text"])
-                and _hidden_binding(expected, memory_id, record["text"])
             ]
-            if not candidates:
+            if not candidates or not _all_hidden_assertions_bind(
+                expected, candidates, reachable
+            ):
                 errors.append(
-                    "%s %s assertions must bind to an existing, query-relevant memory inaccessible to the querying actor"
+                    (
+                        "%s %s assertions must each bind to existing, query-relevant "
+                        "memory inaccessible to the querying actor"
+                    )
                     % (prefix, category)
                 )
     return errors
@@ -263,9 +358,14 @@ def validate_scenario(value: Mapping[str, Any]) -> List[str]:
         if step["op"] == "correct" and not _non_empty_string(step.get("text")):
             errors.append("%s requires non-empty corrected string text" % prefix)
         if "ttl" in step and (
-            type(step.get("ttl")) is not int or step.get("ttl", -1) < 0
+            type(step.get("ttl")) is not int
+            or step.get("ttl", -1) < 0
+            or step.get("ttl", MAX_LOGICAL_TIME + 1) > MAX_LOGICAL_TIME
         ):
-            errors.append("%s ttl must be a non-negative integer" % prefix)
+            errors.append(
+                "%s ttl must be an integer from 0 through %d"
+                % (prefix, MAX_LOGICAL_TIME)
+            )
         if step["op"] == "write" and "readers" in step:
             errors.extend(_validate_string_list(step.get("readers"), "%s readers" % prefix))
             readers = step.get("readers")
@@ -277,9 +377,14 @@ def validate_scenario(value: Mapping[str, Any]) -> List[str]:
                 if unknown:
                     errors.append("%s readers reference unknown principals or roles: %s" % (prefix, ", ".join(unknown)))
         if step["op"] == "advance" and (
-            type(step.get("seconds")) is not int or step.get("seconds", -1) < 0
+            type(step.get("seconds")) is not int
+            or step.get("seconds", -1) < 0
+            or step.get("seconds", MAX_LOGICAL_TIME + 1) > MAX_LOGICAL_TIME
         ):
-            errors.append("%s requires non-negative integer seconds" % prefix)
+            errors.append(
+                "%s seconds must be an integer from 0 through %d"
+                % (prefix, MAX_LOGICAL_TIME)
+            )
         if step["op"] == "query":
             query_count += 1
             category = step.get("category")
@@ -298,6 +403,15 @@ def validate_scenario(value: Mapping[str, Any]) -> List[str]:
             unknown_keys = sorted(set(expected) - set(EXPECTATION_KEYS))
             if unknown_keys:
                 errors.append("%s expect contains unsupported keys: %s" % (prefix, ", ".join(unknown_keys)))
+            if category in CATEGORY_EXPECTATION_KEYS:
+                category_unknown = sorted(
+                    set(expected) - CATEGORY_EXPECTATION_KEYS[category]
+                )
+                if category_unknown:
+                    errors.append(
+                        "%s %s query does not allow expectation keys: %s"
+                        % (prefix, category, ", ".join(category_unknown))
+                    )
             for key in EXPECTATION_KEYS:
                 if key in expected:
                     errors.extend(
@@ -317,8 +431,18 @@ def validate_scenario(value: Mapping[str, Any]) -> List[str]:
                 errors.append("%s expect must contain at least one assertion" % prefix)
             if category == "recall" and visible == 0:
                 errors.append("%s recall query requires a visible assertion" % prefix)
-            if category == "correction" and (visible == 0 or hidden == 0):
-                errors.append("%s correction query requires visible and hidden assertions" % prefix)
+            correction_stale = (
+                len(expected.get("excludes", []))
+                if isinstance(expected.get("excludes", []), list)
+                else 0
+            )
+            if category == "correction" and (
+                visible == 0 or correction_stale == 0
+            ):
+                errors.append(
+                    "%s correction query requires visible current and excludes stale assertions"
+                    % prefix
+                )
             if category in {"deletion", "ttl", "role", "privacy"} and hidden == 0:
                 errors.append("%s %s query requires a hidden assertion" % (prefix, category))
     if query_count == 0:
@@ -341,6 +465,20 @@ def load_scenario(path_value: str) -> Dict[str, Any]:
     if errors:
         raise ValueError("invalid scenario %s: %s" % (path, "; ".join(errors)))
     return value
+
+
+def require_unique_scenario_ids(scenarios: Sequence[Mapping[str, Any]]) -> None:
+    seen = set()
+    duplicates = set()
+    for scenario in scenarios:
+        identifier = scenario.get("id")
+        if identifier in seen:
+            duplicates.add(identifier)
+        seen.add(identifier)
+    if duplicates:
+        raise ValueError(
+            "scenario ids must be unique within a run: %s" % ", ".join(sorted(duplicates))
+        )
 
 
 def _rate(hits: int, total: int) -> Optional[float]:
@@ -375,6 +513,7 @@ def run_scenarios(scenarios: Sequence[Mapping[str, Any]], adapter: MemoryAdapter
                     "invalid scenario %s: %s"
                     % (scenario.get("id", "<unknown>"), "; ".join(validation_errors))
                 )
+        require_unique_scenario_ids(scenarios)
         for scenario_index, scenario in enumerate(scenarios):
             scenario_adapter = adapter if scenario_index == 0 else adapter.fresh()
             if scenario_index == 0:

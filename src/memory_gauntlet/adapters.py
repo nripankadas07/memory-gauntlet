@@ -10,6 +10,29 @@ from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 
+MAX_LOGICAL_TIME = (1 << 63) - 1
+
+
+def _validate_logical_time(now: int) -> int:
+    if type(now) is not int or now < 0 or now > MAX_LOGICAL_TIME:
+        raise ValueError("logical time is outside the supported SQLite integer range")
+    return now
+
+
+def _bounded_time_add(now: int, delta: int, label: str) -> int:
+    _validate_logical_time(now)
+    if type(delta) is not int or delta < 0 or delta > MAX_LOGICAL_TIME - now:
+        raise ValueError(
+            "%s exceeds the supported logical-time/SQLite integer range" % label
+        )
+    return now + delta
+
+
+def _expires_at(now: int, ttl: Optional[int]) -> Optional[int]:
+    _validate_logical_time(now)
+    return None if ttl is None else _bounded_time_add(now, ttl, "ttl")
+
+
 def _tokens(text: str) -> set:
     return set(re.findall(r"[a-z0-9]+", text.lower()))
 
@@ -71,9 +94,7 @@ class MemoryAdapter(abc.ABC):
         raise NotImplementedError
 
     def advance(self, seconds: int) -> None:
-        if seconds < 0:
-            raise ValueError("advance seconds must be non-negative")
-        self.now += seconds
+        self.now = _bounded_time_add(self.now, seconds, "advance seconds")
 
     def fresh(self) -> "MemoryAdapter":
         """Return an empty adapter with the same configuration.
@@ -126,7 +147,7 @@ class GovernedSQLiteAdapter(MemoryAdapter):
     ) -> None:
         if not memory_id or not owner or not text:
             raise ValueError("memory_id, owner, and text are required")
-        expires_at = self.now + ttl if ttl is not None else None
+        expires_at = _expires_at(self.now, ttl)
         try:
             self.connection.execute(
                 "INSERT INTO memories VALUES (?, ?, ?, ?, 1, ?, ?, 0)",
@@ -134,10 +155,13 @@ class GovernedSQLiteAdapter(MemoryAdapter):
             )
         except sqlite3.IntegrityError as exc:
             raise ValueError("memory already exists: %s" % memory_id) from exc
+        except (OverflowError, sqlite3.DataError) as exc:
+            raise ValueError("memory values exceed SQLite integer bounds") from exc
         self.connection.commit()
         self.stats["writes"] += 1
 
     def correct(self, memory_id: str, actor: str, text: str, ttl: Optional[int] = None) -> None:
+        _validate_logical_time(self.now)
         row = self.connection.execute(
             "SELECT owner, version, expires_at FROM memories WHERE memory_id = ? AND deleted = 0",
             (memory_id,),
@@ -146,11 +170,16 @@ class GovernedSQLiteAdapter(MemoryAdapter):
             raise ValueError("unknown memory: %s" % memory_id)
         if row[0] != actor:
             raise ValueError("only the owner can correct memory: %s" % memory_id)
-        expires_at = self.now + ttl if ttl is not None else row[2]
-        self.connection.execute(
-            "UPDATE memories SET text = ?, version = ?, created_at = ?, expires_at = ? WHERE memory_id = ?",
-            (text, row[1] + 1, self.now, expires_at, memory_id),
-        )
+        expires_at = _expires_at(self.now, ttl) if ttl is not None else row[2]
+        if row[1] >= MAX_LOGICAL_TIME:
+            raise ValueError("memory version exceeds SQLite integer bounds")
+        try:
+            self.connection.execute(
+                "UPDATE memories SET text = ?, version = ?, created_at = ?, expires_at = ? WHERE memory_id = ?",
+                (text, row[1] + 1, self.now, expires_at, memory_id),
+            )
+        except (OverflowError, sqlite3.DataError) as exc:
+            raise ValueError("memory values exceed SQLite integer bounds") from exc
         self.connection.commit()
         self.stats["corrections"] += 1
 
@@ -167,6 +196,7 @@ class GovernedSQLiteAdapter(MemoryAdapter):
         self.stats["deletes"] += 1
 
     def query(self, actor: str, role: str, text: str, limit: int = 5) -> List[MemoryResult]:
+        _validate_logical_time(self.now)
         rows = self.connection.execute(
             "SELECT memory_id, owner, text, readers, version, expires_at FROM memories WHERE deleted = 0 ORDER BY memory_id"
         ).fetchall()
@@ -216,12 +246,13 @@ class LeakyAppendOnlyAdapter(MemoryAdapter):
                 "text": text,
                 "readers": list(readers),
                 "version": 1,
-                "expires_at": self.now + ttl if ttl is not None else None,
+                "expires_at": _expires_at(self.now, ttl),
             }
         )
         self.stats["writes"] += 1
 
     def correct(self, memory_id: str, actor: str, text: str, ttl: Optional[int] = None) -> None:
+        _validate_logical_time(self.now)
         matches = [item for item in self.records if item["memory_id"] == memory_id]
         if not matches:
             raise ValueError("unknown memory: %s" % memory_id)
@@ -233,7 +264,11 @@ class LeakyAppendOnlyAdapter(MemoryAdapter):
                 "text": text,
                 "readers": list(previous["readers"]),
                 "version": previous["version"] + 1,
-                "expires_at": self.now + ttl if ttl is not None else previous["expires_at"],
+                "expires_at": (
+                    _expires_at(self.now, ttl)
+                    if ttl is not None
+                    else previous["expires_at"]
+                ),
             }
         )
         self.stats["corrections"] += 1
@@ -245,6 +280,7 @@ class LeakyAppendOnlyAdapter(MemoryAdapter):
         self.stats["deletes"] += 1
 
     def query(self, actor: str, role: str, text: str, limit: int = 5) -> List[MemoryResult]:
+        _validate_logical_time(self.now)
         self.stats["queries"] += 1
         self.stats["records_scanned"] += len(self.records)
         query_tokens = _tokens(text)
