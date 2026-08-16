@@ -8,6 +8,8 @@ import json
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+from .safeio import write_text_files
+
 
 def stable_json(value: Any) -> str:
     return json.dumps(value, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
@@ -127,8 +129,6 @@ body{font:15px system-ui,sans-serif;max-width:1050px;margin:40px auto;padding:0 
 
 
 def write_bundle(runs: Sequence[Mapping[str, Any]], output_value: str) -> Path:
-    output = Path(output_value)
-    output.mkdir(parents=True, exist_ok=True)
     comparison = {
         "schema_version": "memory-gauntlet-comparison/v1",
         "runs": [
@@ -144,7 +144,6 @@ def write_bundle(runs: Sequence[Mapping[str, Any]], output_value: str) -> Path:
     }
     checksums = []
     for name, content in sorted(files.items()):
-        (output / name).write_text(content, encoding="utf-8")
         checksums.append("%s  %s" % (hashlib.sha256(content.encode("utf-8")).hexdigest(), name))
-    (output / "checksums.sha256").write_text("\n".join(checksums) + "\n", encoding="utf-8")
-    return output
+    files["checksums.sha256"] = "\n".join(checksums) + "\n"
+    return write_text_files(output_value, files)

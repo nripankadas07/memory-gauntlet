@@ -40,6 +40,10 @@ Validation also evaluates the ordered scenario history before scoring:
   querying principal and role; and
 - hidden IDs or fragments that never existed do not exercise a dimension.
 
+Every expectation is bound independently; one valid hidden assertion cannot
+legitimize additional invented assertions. Scenario IDs must be unique within a
+multi-file validation, run, or comparison.
+
 Writes cannot reuse a memory ID, and correction/deletion operations must target
 an existing undeleted memory owned by their actor. These checks make malformed
 state transitions input errors rather than adapter-dependent benchmark results.

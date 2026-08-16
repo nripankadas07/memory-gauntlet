@@ -195,7 +195,7 @@
         "visible_total": 0
       }
     ],
-    "runner_version": "0.1.0",
+    "runner_version": "0.1.1",
     "scenario_ids": [
       "governance-tour"
     ],
@@ -469,7 +469,7 @@
         "visible_total": 0
       }
     ],
-    "runner_version": "0.1.0",
+    "runner_version": "0.1.1",
     "scenario_ids": [
       "governance-tour"
     ],

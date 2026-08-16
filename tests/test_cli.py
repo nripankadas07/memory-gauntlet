@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+import json
 from pathlib import Path
 from unittest.mock import patch
 
@@ -14,6 +15,27 @@ class CliTests(unittest.TestCase):
 
     def test_invalid_scenario_returns_two(self):
         self.assertEqual(main(["validate", "missing.json"]), 2)
+
+    def test_validate_rejects_duplicate_scenario_ids(self):
+        with tempfile.TemporaryDirectory() as temp:
+            scenario = {
+                "schema_version": "memory-gauntlet-scenario/v1",
+                "id": "duplicate",
+                "principals": [{"id": "alice", "role": "owner"}],
+                "steps": [
+                    {"op": "write", "actor": "alice", "memory_id": "m", "text": "alpha"},
+                    {
+                        "op": "query",
+                        "actor": "alice",
+                        "query": "alpha",
+                        "category": "recall",
+                        "expect": {"visible_ids": ["m"]},
+                    },
+                ],
+            }
+            path = Path(temp) / "scenario.json"
+            path.write_text(json.dumps(scenario), encoding="utf-8")
+            self.assertEqual(main(["validate", str(path), str(path)]), 2)
 
     def test_demo_uses_packaged_scenarios(self):
         with tempfile.TemporaryDirectory() as temp:
