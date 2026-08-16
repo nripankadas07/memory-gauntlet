@@ -1,0 +1,67 @@
+{
+  "runs": [
+    {
+      "adapter": "governed-sqlite",
+      "scenario_ids": [
+        "governance-tour"
+      ],
+      "scorecard": {
+        "composite": 1.0,
+        "cost": {
+          "corrections": 1,
+          "deletes": 1,
+          "queries": 7,
+          "records_per_query": 2.1429,
+          "records_scanned": 15,
+          "writes": 5
+        },
+        "coverage": 1.0,
+        "deletion_compliance": 1.0,
+        "exercised_dimensions": [
+          "deletion",
+          "freshness",
+          "isolation",
+          "recall",
+          "ttl"
+        ],
+        "privacy_leakage_rate": 0.0,
+        "recall": 1.0,
+        "role_isolation": 1.0,
+        "stale_rate": 0.0,
+        "ttl_compliance": 1.0
+      }
+    },
+    {
+      "adapter": "leaky-append-only",
+      "scenario_ids": [
+        "governance-tour"
+      ],
+      "scorecard": {
+        "composite": 0.2,
+        "cost": {
+          "corrections": 1,
+          "deletes": 1,
+          "queries": 7,
+          "records_per_query": 3.7143,
+          "records_scanned": 26,
+          "writes": 5
+        },
+        "coverage": 1.0,
+        "deletion_compliance": 0.0,
+        "exercised_dimensions": [
+          "deletion",
+          "freshness",
+          "isolation",
+          "recall",
+          "ttl"
+        ],
+        "privacy_leakage_rate": 1.0,
+        "recall": 1.0,
+        "role_isolation": 0.0,
+        "stale_rate": 1.0,
+        "ttl_compliance": 0.0
+      }
+    }
+  ],
+  "schema_version": "memory-gauntlet-comparison/v1"
+}

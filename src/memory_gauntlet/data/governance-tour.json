@@ -1,0 +1,29 @@
+{
+  "schema_version": "memory-gauntlet-scenario/v1",
+  "id": "governance-tour",
+  "description": "Synthetic correction, deletion, TTL, role, and privacy checks.",
+  "principals": [
+    {"id": "alice", "role": "product"},
+    {"id": "bob", "role": "finance"},
+    {"id": "carol", "role": "engineering"},
+    {"id": "dana", "role": "clinician"},
+    {"id": "eve", "role": "visitor"}
+  ],
+  "steps": [
+    {"op": "write", "actor": "alice", "memory_id": "timezone", "text": "Preferred timezone is UTC", "readers": ["product"]},
+    {"op": "query", "actor": "alice", "query": "preferred timezone", "category": "recall", "expect": {"visible_ids": ["timezone"], "contains": ["UTC"]}},
+    {"op": "correct", "actor": "alice", "memory_id": "timezone", "text": "Preferred timezone is GST"},
+    {"op": "query", "actor": "alice", "query": "preferred timezone", "category": "correction", "expect": {"visible_ids": ["timezone"], "contains": ["GST"], "excludes": ["UTC"]}},
+    {"op": "write", "actor": "alice", "memory_id": "phoenix", "text": "Project Phoenix deletion token", "readers": ["product"]},
+    {"op": "delete", "actor": "alice", "memory_id": "phoenix"},
+    {"op": "query", "actor": "alice", "query": "Phoenix deletion", "category": "deletion", "expect": {"hidden_ids": ["phoenix"], "excludes": ["deletion token"]}},
+    {"op": "write", "actor": "alice", "memory_id": "otp", "text": "One time code 7419", "readers": ["product"], "ttl": 60},
+    {"op": "advance", "seconds": 61},
+    {"op": "query", "actor": "alice", "query": "time code", "category": "ttl", "expect": {"hidden_ids": ["otp"], "excludes": ["7419"]}},
+    {"op": "write", "actor": "bob", "memory_id": "budget", "text": "Budget Alpha is five million", "readers": ["finance"]},
+    {"op": "query", "actor": "bob", "query": "Budget Alpha", "category": "recall", "expect": {"visible_ids": ["budget"], "contains": ["five million"]}},
+    {"op": "query", "actor": "carol", "query": "Budget Alpha", "category": "role", "expect": {"hidden_ids": ["budget"], "excludes": ["five million"]}},
+    {"op": "write", "actor": "dana", "memory_id": "allergy", "text": "Patient allergy is penicillin", "readers": ["clinician"]},
+    {"op": "query", "actor": "eve", "query": "patient allergy", "category": "privacy", "expect": {"hidden_ids": ["allergy"], "excludes": ["penicillin"]}}
+  ]
+}

@@ -1,0 +1,16 @@
+name: Feature request
+description: Propose a scenario, metric, or adapter-contract improvement
+title: "[feature] "
+body:
+  - type: textarea
+    id: failure
+    attributes:
+      label: Which real failure should this expose?
+    validations:
+      required: true
+  - type: textarea
+    id: deterministic
+    attributes:
+      label: Deterministic test design
+    validations:
+      required: true

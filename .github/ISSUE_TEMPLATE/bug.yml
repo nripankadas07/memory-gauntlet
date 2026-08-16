@@ -1,0 +1,16 @@
+name: Bug report
+description: Report reproducible scoring or adapter behavior
+title: "[bug] "
+body:
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal synthetic scenario
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+    validations:
+      required: true

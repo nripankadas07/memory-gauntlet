@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "memory-gauntlet"
+version = "0.1.0"
+description = "Deterministic governance benchmark for agent memory adapters."
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [{name = "Nripanka Das"}]
+keywords = ["agents", "memory", "benchmark", "privacy", "evaluation"]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/nripankadas07/memory-gauntlet"
+Repository = "https://github.com/nripankadas07/memory-gauntlet"
+Issues = "https://github.com/nripankadas07/memory-gauntlet/issues"
+
+[project.scripts]
+memory-gauntlet = "memory_gauntlet.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+memory_gauntlet = ["data/*.json"]

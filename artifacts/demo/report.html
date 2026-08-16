@@ -1,0 +1,517 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Memory Gauntlet report</title><style>
+body{font:15px system-ui,sans-serif;max-width:1050px;margin:40px auto;padding:0 20px;color:#182230;background:#f7f9fc}h1{margin-bottom:4px}.lede{color:#475467}table{width:100%;border-collapse:collapse;background:white;border:1px solid #e4e7ec;border-radius:12px}th,td{padding:12px;text-align:right;border-bottom:1px solid #e4e7ec}th:first-child,td:first-child{text-align:left}.composite{font-weight:800;color:#067647}section{background:white;border:1px solid #e4e7ec;padding:16px 20px;margin-top:18px;border-radius:12px}code{white-space:pre-wrap}pre{background:#101828;color:#f2f4f7;padding:16px;border-radius:8px;overflow:auto}details{margin-top:24px}
+</style><h1>Memory Gauntlet</h1><p class="lede">Governance behavior under correction, deletion, TTL, role, and privacy pressure.</p>
+<table><thead><tr><th>Adapter</th><th>Recall</th><th>Stale</th><th>Deletion</th><th>TTL</th><th>Leakage</th><th>Composite</th><th>Coverage</th></tr></thead><tbody><tr><td><strong>governed-sqlite</strong></td><td>1.000</td><td>0.000</td><td>1.000</td><td>1.000</td><td>0.000</td><td class='composite'>1.000</td><td>1.000</td></tr><tr><td><strong>leaky-append-only</strong></td><td>1.000</td><td>1.000</td><td>0.000</td><td>0.000</td><td>1.000</td><td class='composite'>0.200</td><td>1.000</td></tr></tbody></table><section><h2>governed-sqlite</h2><p>0 of 7 checks failed.</p><ul><li>No failed checks.</li></ul></section><section><h2>leaky-append-only</h2><p>5 of 7 checks failed.</p><ul><li><code>governance-tour/4</code>: Preferred timezone is UTC, Preferred timezone is GST</li><li><code>governance-tour/7</code>: Project Phoenix deletion token</li><li><code>governance-tour/10</code>: One time code 7419</li><li><code>governance-tour/13</code>: Budget Alpha is five million</li><li><code>governance-tour/15</code>: Patient allergy is penicillin</li></ul></section>
+<details><summary>Canonical results</summary><pre>[
+  {
+    &quot;adapter&quot;: &quot;governed-sqlite&quot;,
+    &quot;counters&quot;: {
+      &quot;deletion_failures&quot;: 0,
+      &quot;deletion_total&quot;: 2,
+      &quot;leakage_failures&quot;: 0,
+      &quot;leakage_total&quot;: 4,
+      &quot;recall_hits&quot;: 6,
+      &quot;recall_total&quot;: 6,
+      &quot;stale_failures&quot;: 0,
+      &quot;stale_total&quot;: 1,
+      &quot;ttl_failures&quot;: 0,
+      &quot;ttl_total&quot;: 2
+    },
+    &quot;limits&quot;: [
+      &quot;The benchmark measures declared synthetic expectations, not human memory quality.&quot;,
+      &quot;Lexical retrieval is a deterministic baseline, not a semantic-memory claim.&quot;,
+      &quot;Cost counts records inspected and operations; it is not financial cost or latency.&quot;,
+      &quot;Passing scenarios does not prove regulatory privacy compliance.&quot;
+    ],
+    &quot;observations&quot;: [
+      {
+        &quot;actor&quot;: &quot;alice&quot;,
+        &quot;category&quot;: &quot;recall&quot;,
+        &quot;expected&quot;: {
+          &quot;contains&quot;: [
+            &quot;UTC&quot;
+          ],
+          &quot;visible_ids&quot;: [
+            &quot;timezone&quot;
+          ]
+        },
+        &quot;hidden_failures&quot;: 0,
+        &quot;hidden_total&quot;: 0,
+        &quot;passed&quot;: true,
+        &quot;query&quot;: &quot;preferred timezone&quot;,
+        &quot;results&quot;: [
+          {
+            &quot;memory_id&quot;: &quot;timezone&quot;,
+            &quot;owner&quot;: &quot;alice&quot;,
+            &quot;score&quot;: 2,
+            &quot;text&quot;: &quot;Preferred timezone is UTC&quot;,
+            &quot;version&quot;: 1
+          }
+        ],
+        &quot;scenario_id&quot;: &quot;governance-tour&quot;,
+        &quot;sequence&quot;: 2,
+        &quot;visible_hits&quot;: 2,
+        &quot;visible_total&quot;: 2
+      },
+      {
+        &quot;actor&quot;: &quot;alice&quot;,
+        &quot;category&quot;: &quot;correction&quot;,
+        &quot;expected&quot;: {
+          &quot;contains&quot;: [
+            &quot;GST&quot;
+          ],
+          &quot;excludes&quot;: [
+            &quot;UTC&quot;
+          ],
+          &quot;visible_ids&quot;: [
+            &quot;timezone&quot;
+          ]
+        },
+        &quot;hidden_failures&quot;: 0,
+        &quot;hidden_total&quot;: 1,
+        &quot;passed&quot;: true,
+        &quot;query&quot;: &quot;preferred timezone&quot;,
+        &quot;results&quot;: [
+          {
+            &quot;memory_id&quot;: &quot;timezone&quot;,
+            &quot;owner&quot;: &quot;alice&quot;,
+            &quot;score&quot;: 2,
+            &quot;text&quot;: &quot;Preferred timezone is GST&quot;,
+            &quot;version&quot;: 2
+          }
+        ],
+        &quot;scenario_id&quot;: &quot;governance-tour&quot;,
+        &quot;sequence&quot;: 4,
+        &quot;visible_hits&quot;: 2,
+        &quot;visible_total&quot;: 2
+      },
+      {
+        &quot;actor&quot;: &quot;alice&quot;,
+        &quot;category&quot;: &quot;deletion&quot;,
+        &quot;expected&quot;: {
+          &quot;excludes&quot;: [
+            &quot;deletion token&quot;
+          ],
+          &quot;hidden_ids&quot;: [
+            &quot;phoenix&quot;
+          ]
+        },
+        &quot;hidden_failures&quot;: 0,
+        &quot;hidden_total&quot;: 2,
+        &quot;passed&quot;: true,
+        &quot;query&quot;: &quot;Phoenix deletion&quot;,
+        &quot;results&quot;: [],
+        &quot;scenario_id&quot;: &quot;governance-tour&quot;,
+        &quot;sequence&quot;: 7,
+        &quot;visible_hits&quot;: 0,
+        &quot;visible_total&quot;: 0
+      },
+      {
+        &quot;actor&quot;: &quot;alice&quot;,
+        &quot;category&quot;: &quot;ttl&quot;,
+        &quot;expected&quot;: {
+          &quot;excludes&quot;: [
+            &quot;7419&quot;
+          ],
+          &quot;hidden_ids&quot;: [
+            &quot;otp&quot;
+          ]
+        },
+        &quot;hidden_failures&quot;: 0,
+        &quot;hidden_total&quot;: 2,
+        &quot;passed&quot;: true,
+        &quot;query&quot;: &quot;time code&quot;,
+        &quot;results&quot;: [],
+        &quot;scenario_id&quot;: &quot;governance-tour&quot;,
+        &quot;sequence&quot;: 10,
+        &quot;visible_hits&quot;: 0,
+        &quot;visible_total&quot;: 0
+      },
+      {
+        &quot;actor&quot;: &quot;bob&quot;,
+        &quot;category&quot;: &quot;recall&quot;,
+        &quot;expected&quot;: {
+          &quot;contains&quot;: [
+            &quot;five million&quot;
+          ],
+          &quot;visible_ids&quot;: [
+            &quot;budget&quot;
+          ]
+        },
+        &quot;hidden_failures&quot;: 0,
+        &quot;hidden_total&quot;: 0,
+        &quot;passed&quot;: true,
+        &quot;query&quot;: &quot;Budget Alpha&quot;,
+        &quot;results&quot;: [
+          {
+            &quot;memory_id&quot;: &quot;budget&quot;,
+            &quot;owner&quot;: &quot;bob&quot;,
+            &quot;score&quot;: 2,
+            &quot;text&quot;: &quot;Budget Alpha is five million&quot;,
+            &quot;version&quot;: 1
+          }
+        ],
+        &quot;scenario_id&quot;: &quot;governance-tour&quot;,
+        &quot;sequence&quot;: 12,
+        &quot;visible_hits&quot;: 2,
+        &quot;visible_total&quot;: 2
+      },
+      {
+        &quot;actor&quot;: &quot;carol&quot;,
+        &quot;category&quot;: &quot;role&quot;,
+        &quot;expected&quot;: {
+          &quot;excludes&quot;: [
+            &quot;five million&quot;
+          ],
+          &quot;hidden_ids&quot;: [
+            &quot;budget&quot;
+          ]
+        },
+        &quot;hidden_failures&quot;: 0,
+        &quot;hidden_total&quot;: 2,
+        &quot;passed&quot;: true,
+        &quot;query&quot;: &quot;Budget Alpha&quot;,
+        &quot;results&quot;: [],
+        &quot;scenario_id&quot;: &quot;governance-tour&quot;,
+        &quot;sequence&quot;: 13,
+        &quot;visible_hits&quot;: 0,
+        &quot;visible_total&quot;: 0
+      },
+      {
+        &quot;actor&quot;: &quot;eve&quot;,
+        &quot;category&quot;: &quot;privacy&quot;,
+        &quot;expected&quot;: {
+          &quot;excludes&quot;: [
+            &quot;penicillin&quot;
+          ],
+          &quot;hidden_ids&quot;: [
+            &quot;allergy&quot;
+          ]
+        },
+        &quot;hidden_failures&quot;: 0,
+        &quot;hidden_total&quot;: 2,
+        &quot;passed&quot;: true,
+        &quot;query&quot;: &quot;patient allergy&quot;,
+        &quot;results&quot;: [],
+        &quot;scenario_id&quot;: &quot;governance-tour&quot;,
+        &quot;sequence&quot;: 15,
+        &quot;visible_hits&quot;: 0,
+        &quot;visible_total&quot;: 0
+      }
+    ],
+    &quot;runner_version&quot;: &quot;0.1.0&quot;,
+    &quot;scenario_ids&quot;: [
+      &quot;governance-tour&quot;
+    ],
+    &quot;scenarios&quot;: [
+      {
+        &quot;failed&quot;: 0,
+        &quot;id&quot;: &quot;governance-tour&quot;,
+        &quot;passed&quot;: 7,
+        &quot;queries&quot;: 7
+      }
+    ],
+    &quot;schema_version&quot;: &quot;memory-gauntlet/v1&quot;,
+    &quot;scorecard&quot;: {
+      &quot;composite&quot;: 1.0,
+      &quot;cost&quot;: {
+        &quot;corrections&quot;: 1,
+        &quot;deletes&quot;: 1,
+        &quot;queries&quot;: 7,
+        &quot;records_per_query&quot;: 2.1429,
+        &quot;records_scanned&quot;: 15,
+        &quot;writes&quot;: 5
+      },
+      &quot;coverage&quot;: 1.0,
+      &quot;deletion_compliance&quot;: 1.0,
+      &quot;exercised_dimensions&quot;: [
+        &quot;deletion&quot;,
+        &quot;freshness&quot;,
+        &quot;isolation&quot;,
+        &quot;recall&quot;,
+        &quot;ttl&quot;
+      ],
+      &quot;privacy_leakage_rate&quot;: 0.0,
+      &quot;recall&quot;: 1.0,
+      &quot;role_isolation&quot;: 1.0,
+      &quot;stale_rate&quot;: 0.0,
+      &quot;ttl_compliance&quot;: 1.0
+    }
+  },
+  {
+    &quot;adapter&quot;: &quot;leaky-append-only&quot;,
+    &quot;counters&quot;: {
+      &quot;deletion_failures&quot;: 2,
+      &quot;deletion_total&quot;: 2,
+      &quot;leakage_failures&quot;: 4,
+      &quot;leakage_total&quot;: 4,
+      &quot;recall_hits&quot;: 6,
+      &quot;recall_total&quot;: 6,
+      &quot;stale_failures&quot;: 1,
+      &quot;stale_total&quot;: 1,
+      &quot;ttl_failures&quot;: 2,
+      &quot;ttl_total&quot;: 2
+    },
+    &quot;limits&quot;: [
+      &quot;The benchmark measures declared synthetic expectations, not human memory quality.&quot;,
+      &quot;Lexical retrieval is a deterministic baseline, not a semantic-memory claim.&quot;,
+      &quot;Cost counts records inspected and operations; it is not financial cost or latency.&quot;,
+      &quot;Passing scenarios does not prove regulatory privacy compliance.&quot;
+    ],
+    &quot;observations&quot;: [
+      {
+        &quot;actor&quot;: &quot;alice&quot;,
+        &quot;category&quot;: &quot;recall&quot;,
+        &quot;expected&quot;: {
+          &quot;contains&quot;: [
+            &quot;UTC&quot;
+          ],
+          &quot;visible_ids&quot;: [
+            &quot;timezone&quot;
+          ]
+        },
+        &quot;hidden_failures&quot;: 0,
+        &quot;hidden_total&quot;: 0,
+        &quot;passed&quot;: true,
+        &quot;query&quot;: &quot;preferred timezone&quot;,
+        &quot;results&quot;: [
+          {
+            &quot;memory_id&quot;: &quot;timezone&quot;,
+            &quot;owner&quot;: &quot;alice&quot;,
+            &quot;score&quot;: 2,
+            &quot;text&quot;: &quot;Preferred timezone is UTC&quot;,
+            &quot;version&quot;: 1
+          }
+        ],
+        &quot;scenario_id&quot;: &quot;governance-tour&quot;,
+        &quot;sequence&quot;: 2,
+        &quot;visible_hits&quot;: 2,
+        &quot;visible_total&quot;: 2
+      },
+      {
+        &quot;actor&quot;: &quot;alice&quot;,
+        &quot;category&quot;: &quot;correction&quot;,
+        &quot;expected&quot;: {
+          &quot;contains&quot;: [
+            &quot;GST&quot;
+          ],
+          &quot;excludes&quot;: [
+            &quot;UTC&quot;
+          ],
+          &quot;visible_ids&quot;: [
+            &quot;timezone&quot;
+          ]
+        },
+        &quot;hidden_failures&quot;: 1,
+        &quot;hidden_total&quot;: 1,
+        &quot;passed&quot;: false,
+        &quot;query&quot;: &quot;preferred timezone&quot;,
+        &quot;results&quot;: [
+          {
+            &quot;memory_id&quot;: &quot;timezone&quot;,
+            &quot;owner&quot;: &quot;alice&quot;,
+            &quot;score&quot;: 2,
+            &quot;text&quot;: &quot;Preferred timezone is UTC&quot;,
+            &quot;version&quot;: 1
+          },
+          {
+            &quot;memory_id&quot;: &quot;timezone&quot;,
+            &quot;owner&quot;: &quot;alice&quot;,
+            &quot;score&quot;: 2,
+            &quot;text&quot;: &quot;Preferred timezone is GST&quot;,
+            &quot;version&quot;: 2
+          }
+        ],
+        &quot;scenario_id&quot;: &quot;governance-tour&quot;,
+        &quot;sequence&quot;: 4,
+        &quot;visible_hits&quot;: 2,
+        &quot;visible_total&quot;: 2
+      },
+      {
+        &quot;actor&quot;: &quot;alice&quot;,
+        &quot;category&quot;: &quot;deletion&quot;,
+        &quot;expected&quot;: {
+          &quot;excludes&quot;: [
+            &quot;deletion token&quot;
+          ],
+          &quot;hidden_ids&quot;: [
+            &quot;phoenix&quot;
+          ]
+        },
+        &quot;hidden_failures&quot;: 2,
+        &quot;hidden_total&quot;: 2,
+        &quot;passed&quot;: false,
+        &quot;query&quot;: &quot;Phoenix deletion&quot;,
+        &quot;results&quot;: [
+          {
+            &quot;memory_id&quot;: &quot;phoenix&quot;,
+            &quot;owner&quot;: &quot;alice&quot;,
+            &quot;score&quot;: 2,
+            &quot;text&quot;: &quot;Project Phoenix deletion token&quot;,
+            &quot;version&quot;: 1
+          }
+        ],
+        &quot;scenario_id&quot;: &quot;governance-tour&quot;,
+        &quot;sequence&quot;: 7,
+        &quot;visible_hits&quot;: 0,
+        &quot;visible_total&quot;: 0
+      },
+      {
+        &quot;actor&quot;: &quot;alice&quot;,
+        &quot;category&quot;: &quot;ttl&quot;,
+        &quot;expected&quot;: {
+          &quot;excludes&quot;: [
+            &quot;7419&quot;
+          ],
+          &quot;hidden_ids&quot;: [
+            &quot;otp&quot;
+          ]
+        },
+        &quot;hidden_failures&quot;: 2,
+        &quot;hidden_total&quot;: 2,
+        &quot;passed&quot;: false,
+        &quot;query&quot;: &quot;time code&quot;,
+        &quot;results&quot;: [
+          {
+            &quot;memory_id&quot;: &quot;otp&quot;,
+            &quot;owner&quot;: &quot;alice&quot;,
+            &quot;score&quot;: 2,
+            &quot;text&quot;: &quot;One time code 7419&quot;,
+            &quot;version&quot;: 1
+          }
+        ],
+        &quot;scenario_id&quot;: &quot;governance-tour&quot;,
+        &quot;sequence&quot;: 10,
+        &quot;visible_hits&quot;: 0,
+        &quot;visible_total&quot;: 0
+      },
+      {
+        &quot;actor&quot;: &quot;bob&quot;,
+        &quot;category&quot;: &quot;recall&quot;,
+        &quot;expected&quot;: {
+          &quot;contains&quot;: [
+            &quot;five million&quot;
+          ],
+          &quot;visible_ids&quot;: [
+            &quot;budget&quot;
+          ]
+        },
+        &quot;hidden_failures&quot;: 0,
+        &quot;hidden_total&quot;: 0,
+        &quot;passed&quot;: true,
+        &quot;query&quot;: &quot;Budget Alpha&quot;,
+        &quot;results&quot;: [
+          {
+            &quot;memory_id&quot;: &quot;budget&quot;,
+            &quot;owner&quot;: &quot;bob&quot;,
+            &quot;score&quot;: 2,
+            &quot;text&quot;: &quot;Budget Alpha is five million&quot;,
+            &quot;version&quot;: 1
+          }
+        ],
+        &quot;scenario_id&quot;: &quot;governance-tour&quot;,
+        &quot;sequence&quot;: 12,
+        &quot;visible_hits&quot;: 2,
+        &quot;visible_total&quot;: 2
+      },
+      {
+        &quot;actor&quot;: &quot;carol&quot;,
+        &quot;category&quot;: &quot;role&quot;,
+        &quot;expected&quot;: {
+          &quot;excludes&quot;: [
+            &quot;five million&quot;
+          ],
+          &quot;hidden_ids&quot;: [
+            &quot;budget&quot;
+          ]
+        },
+        &quot;hidden_failures&quot;: 2,
+        &quot;hidden_total&quot;: 2,
+        &quot;passed&quot;: false,
+        &quot;query&quot;: &quot;Budget Alpha&quot;,
+        &quot;results&quot;: [
+          {
+            &quot;memory_id&quot;: &quot;budget&quot;,
+            &quot;owner&quot;: &quot;bob&quot;,
+            &quot;score&quot;: 2,
+            &quot;text&quot;: &quot;Budget Alpha is five million&quot;,
+            &quot;version&quot;: 1
+          }
+        ],
+        &quot;scenario_id&quot;: &quot;governance-tour&quot;,
+        &quot;sequence&quot;: 13,
+        &quot;visible_hits&quot;: 0,
+        &quot;visible_total&quot;: 0
+      },
+      {
+        &quot;actor&quot;: &quot;eve&quot;,
+        &quot;category&quot;: &quot;privacy&quot;,
+        &quot;expected&quot;: {
+          &quot;excludes&quot;: [
+            &quot;penicillin&quot;
+          ],
+          &quot;hidden_ids&quot;: [
+            &quot;allergy&quot;
+          ]
+        },
+        &quot;hidden_failures&quot;: 2,
+        &quot;hidden_total&quot;: 2,
+        &quot;passed&quot;: false,
+        &quot;query&quot;: &quot;patient allergy&quot;,
+        &quot;results&quot;: [
+          {
+            &quot;memory_id&quot;: &quot;allergy&quot;,
+            &quot;owner&quot;: &quot;dana&quot;,
+            &quot;score&quot;: 2,
+            &quot;text&quot;: &quot;Patient allergy is penicillin&quot;,
+            &quot;version&quot;: 1
+          }
+        ],
+        &quot;scenario_id&quot;: &quot;governance-tour&quot;,
+        &quot;sequence&quot;: 15,
+        &quot;visible_hits&quot;: 0,
+        &quot;visible_total&quot;: 0
+      }
+    ],
+    &quot;runner_version&quot;: &quot;0.1.0&quot;,
+    &quot;scenario_ids&quot;: [
+      &quot;governance-tour&quot;
+    ],
+    &quot;scenarios&quot;: [
+      {
+        &quot;failed&quot;: 5,
+        &quot;id&quot;: &quot;governance-tour&quot;,
+        &quot;passed&quot;: 2,
+        &quot;queries&quot;: 7
+      }
+    ],
+    &quot;schema_version&quot;: &quot;memory-gauntlet/v1&quot;,
+    &quot;scorecard&quot;: {
+      &quot;composite&quot;: 0.2,
+      &quot;cost&quot;: {
+        &quot;corrections&quot;: 1,
+        &quot;deletes&quot;: 1,
+        &quot;queries&quot;: 7,
+        &quot;records_per_query&quot;: 3.7143,
+        &quot;records_scanned&quot;: 26,
+        &quot;writes&quot;: 5
+      },
+      &quot;coverage&quot;: 1.0,
+      &quot;deletion_compliance&quot;: 0.0,
+      &quot;exercised_dimensions&quot;: [
+        &quot;deletion&quot;,
+        &quot;freshness&quot;,
+        &quot;isolation&quot;,
+        &quot;recall&quot;,
+        &quot;ttl&quot;
+      ],
+      &quot;privacy_leakage_rate&quot;: 1.0,
+      &quot;recall&quot;: 1.0,
+      &quot;role_isolation&quot;: 0.0,
+      &quot;stale_rate&quot;: 1.0,
+      &quot;ttl_compliance&quot;: 0.0
+    }
+  }
+]
+</pre></details></html>
